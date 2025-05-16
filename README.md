@@ -52,7 +52,7 @@ The Tekton Dashboard Authentication Proxy sits in front of your Tekton Dashboard
 
 1. Clone this repository:
    ```
-   git clone # TODO
+   git clone https://github.com/Jacobcaller/Tekton-Dashboard-Auth-Proxy
    cd tekton-dashboard-auth
    ```
 
