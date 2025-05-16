@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ .Values.appName }}
+  name: {{ .Values.appName }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  template:
+    metadata:
+      annotations:
+        # This will cause re-deployment of this deployment's pod, anytime some of the values are updated
+        reDeploymentTrigger: {{ .Values | toJson | sha256sum }}
+      labels:
+        app: {{ .Values.appName }}
+    spec:
+      {{- if .Values.image.imagePullSecret.enabled }}
+      imagePullSecrets:
+        - name: {{ .Values.image.imagePullSecret.name }}
+      {{- end }}
+      containers:
+      - image: {{ printf "%s:%v" .Values.image.name .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        name: {{ .Values.appName }}
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+        envFrom:
+          - secretRef:
+              name: {{ .Values.appName }}
+          - configMapRef:
+              name: {{ .Values.appName }}
+        env:
+          - name: PORT
+            value: {{ .Values.service.port | quote }}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+          protocol: TCP
+          name: http

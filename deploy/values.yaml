@@ -1,0 +1,57 @@
+appName: tekton-dashboard-auth
+image:
+  name: yourdockerrepo/tekton-dashboard-auth
+  tag: latest
+  pullPolicy: Always
+  imagePullSecret:
+    enabled: false
+    name: your-pull-secret
+resources:
+  requests:
+    cpu: 5m
+    memory: 64Mi
+  limits:
+    cpu: 50m
+    memory: 128Mi
+replicas: 1
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dns01
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  host: tekton.your-domain.com
+service:
+  port: 8080
+envVars:
+  # Azure AD Configuration
+  AZURE_TENANT_ID: your-tenant-id
+  AZURE_CLIENT_ID: your-client-id
+  # General Configuration
+  REDIRECT_URL: https://tekton.your-domain.com/callback
+  TEKTON_DASHBOARD_URL: http://tekton-dashboard.tekton-pipelines.svc.cluster.local:9097
+  # Authorization Configuration
+  # Comma-separated list of Azure AD group IDs or display names that are allowed to access Tekton Dashboard
+  ALLOWED_GROUPS: your-azure-group1,your-azure-group2
+secrets:
+  # Azure AD Configuration
+  AZURE_CLIENT_SECRET: your-client-secret
+  # General Configuration
+  COOKIE_SECRET: your-random-cookie-secret
+rbac:
+  # Enable or disable RBAC setup
+  enabled: true
+  # Groups with admin access across all namespaces
+  adminGroups:
+    - "your-admin-group"
+  # Groups with read-only access across all namespaces
+  globalViewerGroups:
+    - "your-viewer-group"
+  # Namespace-specific access
+  namespaces:
+    tekton-pipelines:
+      readWriteGroups:
+        - "your-developer-group"
+    test-namespace:
+      readOnlyGroups:
+        - "your-pm-group"

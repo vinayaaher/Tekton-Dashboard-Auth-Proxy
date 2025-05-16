@@ -1,0 +1,82 @@
+{{- if .Values.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tekton-dashboard-basic-viewer
+rules:
+- apiGroups: [""]
+  resources: ["namespaces", "pods", "pods/log", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["events.k8s.io"]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["tekton.dev"]
+  resources: ["clustertasks"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["triggers.tekton.dev"]
+  resources: ["clusterinterceptors", "clustertriggerbindings"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tekton-dashboard-resources-viewer
+rules:
+- apiGroups: ["tekton.dev"]
+  resources: ["tasks", "taskruns", "pipelines", "pipelineruns", "conditions", "runs", "customruns"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["triggers.tekton.dev"]
+  resources: ["eventlisteners", "triggerbindings", "triggertemplates", "triggers", "interceptors"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["resolution.tekton.dev"]
+  resources: ["resolutionrequests"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tekton-dashboard-resources-editor
+rules:
+- apiGroups: ["tekton.dev"]
+  resources: ["tasks", "taskruns", "pipelines", "pipelineruns", "conditions", "runs", "customruns"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["triggers.tekton.dev"]
+  resources: ["eventlisteners", "triggerbindings", "triggertemplates", "triggers", "interceptors"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["resolution.tekton.dev"]
+  resources: ["resolutionrequests"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: tekton-dashboard-admin
+rules:
+- apiGroups: [""]
+  resources: ["namespaces", "pods", "pods/log", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["events.k8s.io"]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["tekton.dev"]
+  resources: ["tasks", "taskruns", "pipelines", "pipelineruns", "conditions", "runs", "customruns"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["triggers.tekton.dev"]
+  resources: ["eventlisteners", "triggerbindings", "triggertemplates", "triggers", "interceptors"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["resolution.tekton.dev"]
+  resources: ["resolutionrequests"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["tekton.dev"]
+  resources: ["clustertasks"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["triggers.tekton.dev"]
+  resources: ["clusterinterceptors", "clustertriggerbindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+{{- end }}

@@ -1,0 +1,108 @@
+{{- if .Values.rbac.enabled }}
+{{- if .Values.envVars.ALLOWED_GROUPS }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tekton-dashboard-basic-viewers
+subjects:
+  {{- $groups := splitList "," .Values.envVars.ALLOWED_GROUPS }}
+  {{- range $groups }}
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-basic-viewer
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+
+{{- if .Values.rbac.globalViewerGroups }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tekton-dashboard-global-viewer
+subjects:
+  {{- range .Values.rbac.globalViewerGroups }}
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-resources-viewer
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+
+{{- if .Values.rbac.adminGroups }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: tekton-dashboard-admin
+subjects:
+  {{- range .Values.rbac.adminGroups }}
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-admin
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+
+{{- range $namespaceName, $namespaceConfig := .Values.rbac.namespaces }}
+
+  {{- range $namespaceConfig.readOnlyGroups }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-dashboard-resources-viewer-{{ . | replace "_" "-" | lower }}
+  namespace: {{ $namespaceName }}
+subjects:
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-resources-viewer
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+
+  {{- range $namespaceConfig.readWriteGroups }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-dashboard-resources-viewer-{{ . | replace "_" "-" | lower }}
+  namespace: {{ $namespaceName }}
+subjects:
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-resources-viewer
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tekton-dashboard-resources-editor-{{ . | replace "_" "-" | lower }}
+  namespace: {{ $namespaceName }}
+subjects:
+- kind: Group
+  name: "{{ . }}"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: tekton-dashboard-resources-editor
+  apiGroup: rbac.authorization.k8s.io
+  {{- end }}
+{{- end }}
+{{- end }}
