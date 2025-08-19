@@ -60,6 +60,7 @@ type Group struct {
 // GroupResponse represents the Microsoft Graph API response for groups
 type GroupResponse struct {
 	Value []Group `json:"value"`
+	OdataNextLink string `json:"@odata.nextLink"` // Holds the URL for the next page
 }
 
 func main() {
@@ -236,42 +237,58 @@ func handleLogin(w http.ResponseWriter, r *http.Request, config Config) {
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-// Get user's group memberships from Microsoft Graph API
+// GetUserGroups fetches a user's group memberships from Microsoft Graph API
 func getUserGroups(ctx context.Context, accessToken string) ([]Group, error) {
 	log.Printf("Fetching user groups from Microsoft Graph API")
-	
-	// Create a request to Microsoft Graph API
-	req, err := http.NewRequest("GET", MicrosoftGraphURL+"/me/memberOf", nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Graph API request: %v", err)
-	}
-	
-	// Set the Authorization header with the access token
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	req.Header.Set("Content-Type", "application/json")
-	
-	// Execute the request
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute Graph API request: %v", err)
-	}
-	defer resp.Body.Close()
-	
-	// Check response status
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Graph API request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
-	}
-	
-	// Parse the response
-	var groupResponse GroupResponse
-	if err := json.NewDecoder(resp.Body).Decode(&groupResponse); err != nil {
-		return nil, fmt.Errorf("failed to decode Graph API response: %v", err)
-	}
-	
-	log.Printf("Retrieved %d groups for user", len(groupResponse.Value))
-	return groupResponse.Value, nil
+
+	allGroups := []Group{}
+	requestURL := MicrosoftGraphURL + "/me/memberOf?$top=999" // Initial request URL
+
+	for {
+			// Create a new request for each page
+			req, err := http.NewRequest("GET", requestURL, nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Graph API request: %v", err)
+			}
+
+			// Set the Authorization header with the access token
+			req.Header.Set("Authorization", "Bearer "+accessToken)
+			req.Header.Set("Content-Type", "application/json")
+
+			// Execute the request
+			client := &http.Client{Timeout: 10 * time.Second}
+			resp, err := client.Do(req)
+			if err != nil {
+				return nil, fmt.Errorf("failed to execute Graph API request: %v", err)
+			}
+			defer resp.Body.Close()
+
+			// Check response status
+			if resp.StatusCode != http.StatusOK {
+				bodyBytes, _ := io.ReadAll(resp.Body)
+				return nil, fmt.Errorf("Graph API request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+			}
+
+			// Parse the response
+			var groupResponse GroupResponse
+			if err := json.NewDecoder(resp.Body).Decode(&groupResponse); err != nil {
+				return nil, fmt.Errorf("failed to decode Graph API response: %v", err)
+			}
+
+			// Append the groups from the current page to the overall list
+			allGroups = append(allGroups, groupResponse.Value...)
+
+			log.Printf("Retrieved %d groups for current page, total: %d", len(groupResponse.Value), len(allGroups))
+
+			// Check for @odata.nextLink and continue or break the loop
+			if groupResponse.OdataNextLink != "" {
+				requestURL = groupResponse.OdataNextLink // Update URL for the next page
+			} else {
+				break // No more pages, exit the loop
+			}
+}
+
+	return allGroups, nil
 }
 
 // Handle OAuth2 callback
